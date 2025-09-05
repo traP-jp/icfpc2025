@@ -8,7 +8,6 @@ def is_connected(connections):
     visited = [False] * n
     stack = [0]
     visited[0] = True
-    print(connections)
     while stack:
         room = stack.pop()
         for to_room, _ in connections[room]:
@@ -115,7 +114,6 @@ def run_judge(size, program):
             # --- 解答フェーズ ---
             label_line = proc.stdout.readline().strip()
             answer_labels = list(map(int, label_line.split()))
-            print("[judge] submitted labels:", answer_labels)
 
             answer_connections = []
             for i in range(size):
@@ -125,10 +123,6 @@ def run_judge(size, program):
                     i_connection.append((parts[2*d], parts[2*d+1]))
                 answer_connections.append(i_connection)
             
-            print("[judge] submitted connections:")
-            for i, row in enumerate(answer_connections):
-                print(i, ":", row)
-
             # 正誤判定
             
             correct = check_answer(labels, connections, answer_labels, answer_connections)
