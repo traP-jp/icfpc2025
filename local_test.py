@@ -8,6 +8,7 @@ def is_connected(connections):
     visited = [False] * n
     stack = [0]
     visited[0] = True
+    print(connections)
     while stack:
         room = stack.pop()
         for to_room, _ in connections[room]:
@@ -33,7 +34,8 @@ def generate_labyrinth(n):
             connections[room1][door1] = (room2, door2)
             connections[room2][door2] = (room1, door1)
             door_list.pop(max(index1, index2))
-            door_list.pop(min(index1, index2))
+            if index1 != index2:
+                door_list.pop(min(index1, index2))
         
         if is_connected(connections):
             break
@@ -148,7 +150,7 @@ def run_judge(size, program):
                 proc.kill()
                 break
 
-            query_count += total_len
+            query_count += q
             explore_calls += 1
 
             for plan in plans:
