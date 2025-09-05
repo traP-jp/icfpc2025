@@ -87,76 +87,122 @@ def check_answer(labels, connections, answer_labels, answer_connections):
                 return False
     return True
 
-def run_judge(size, program):
+def run_judge(size, program, manual=False):
     labels, connections = generate_labyrinth(size)
     limit = 18 * size
-
-    proc = subprocess.Popen(
-        program,
-        stdin=subprocess.PIPE,
-        stdout=subprocess.PIPE,
-        text=True,
-        bufsize=1,
-    )
-
-    # 部屋数を送信
-    print(size, file=proc.stdin, flush=True)
 
     query_count = 0     # 合計探索長
     explore_calls = 0   # /explore 呼び出し回数
 
-    while True:
-        line = proc.stdout.readline()
-        if not line:
-            break
-        q = int(line.strip())
-        if q == 0:
-            # --- 解答フェーズ ---
-            label_line = proc.stdout.readline().strip()
-            answer_labels = list(map(int, label_line.split()))
+    if manual:
+        print(f"[judge] 部屋数: {size}")
+        print(f"[judge] ラベル: {labels}")
+        print(f"[judge] 接続: {connections}")
+        while True:
+            q = int(input("探索回数qを入力 (解答フェーズは0): "))
+            if q == 0:
+                print("[judge] --- 解答フェーズ ---")
+                label_line = input("提出ラベル列 (スペース区切り): ").strip()
+                answer_labels = list(map(int, label_line.split()))
 
-            answer_connections = []
-            for i in range(size):
-                parts = list(map(int, proc.stdout.readline().split()))
-                i_connection = []
-                for d in range(6):
-                    i_connection.append((parts[2*d], parts[2*d+1]))
-                answer_connections.append(i_connection)
-            
-            # 正誤判定
-            
-            correct = check_answer(labels, connections, answer_labels, answer_connections)
-            print("[judge] CORRECT?" , correct)
-            score = query_count + explore_calls  # ペナルティ込み
-            print("[judge] SCORE =", score)
-            break
-        else:
-            # --- 探索フェーズ ---
-            plans = []
-            total_len = 0
-            for _ in range(q):
-                plan = proc.stdout.readline().strip()
-                total_len += len(plan)
-                plans.append(plan)
+                answer_connections = []
+                print(f"部屋ごとに接続情報を入力 (各部屋 {size} 行, 各行 12個の整数: to,door x6)")
+                for i in range(size):
+                    parts = list(map(int, input(f"部屋{i}: ").split()))
+                    i_connection = []
+                    for d in range(6):
+                        i_connection.append((parts[2*d], parts[2*d+1]))
+                    answer_connections.append(i_connection)
 
-            if total_len > limit:
-                print(f"[judge] ERROR: total route length {total_len} exceeds limit {limit}", file=sys.stderr)
-                proc.kill()
+                correct = check_answer(labels, connections, answer_labels, answer_connections)
+                print("[judge] CORRECT?", correct)
+                score = query_count + explore_calls
+                print("[judge] SCORE =", score)
                 break
+            else:
+                print(f"[judge] --- 探索フェーズ (q={q}) ---")
+                plans = []
+                total_len = 0
+                for i in range(q):
+                    plan = input(f"plan[{i}] (ドア番号列): ").strip()
+                    total_len += len(plan)
+                    plans.append(plan)
 
-            query_count += q
-            explore_calls += 1
+                if total_len > limit:
+                    print(f"[judge] ERROR: total route length {total_len} exceeds limit {limit}", file=sys.stderr)
+                    break
 
-            for plan in plans:
-                res = simulate_explore(labels, connections, plan)
-                print(" ".join(map(str, res)), file=proc.stdin, flush=True)
+                query_count += q
+                explore_calls += 1
+
+                for plan in plans:
+                    res = simulate_explore(labels, connections, plan)
+                    print("[judge] 探索結果:", " ".join(map(str, res)))
+    else:
+        proc = subprocess.Popen(
+            program,
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            text=True,
+            bufsize=1,
+        )
+
+        # 部屋数を送信
+        print(size, file=proc.stdin, flush=True)
+
+        while True:
+            line = proc.stdout.readline()
+            if not line:
+                break
+            q = int(line.strip())
+            if q == 0:
+                # --- 解答フェーズ ---
+                label_line = proc.stdout.readline().strip()
+                answer_labels = list(map(int, label_line.split()))
+
+                answer_connections = []
+                for i in range(size):
+                    parts = list(map(int, proc.stdout.readline().split()))
+                    i_connection = []
+                    for d in range(6):
+                        i_connection.append((parts[2*d], parts[2*d+1]))
+                    answer_connections.append(i_connection)
+                
+                # 正誤判定
+                
+                correct = check_answer(labels, connections, answer_labels, answer_connections)
+                print("[judge] CORRECT?" , correct)
+                score = query_count + explore_calls  # ペナルティ込み
+                print("[judge] SCORE =", score)
+                break
+            else:
+                # --- 探索フェーズ ---
+                plans = []
+                total_len = 0
+                for _ in range(q):
+                    plan = proc.stdout.readline().strip()
+                    total_len += len(plan)
+                    plans.append(plan)
+
+                if total_len > limit:
+                    print(f"[judge] ERROR: total route length {total_len} exceeds limit {limit}", file=sys.stderr)
+                    proc.kill()
+                    break
+
+                query_count += q
+                explore_calls += 1
+
+                for plan in plans:
+                    res = simulate_explore(labels, connections, plan)
+                    print(" ".join(map(str, res)), file=proc.stdin, flush=True)
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--size", type=int, required=True)
-    parser.add_argument("program", nargs="+", help="program to run")
+    parser.add_argument("program", nargs="*", help="program to run")
+    parser.add_argument("--manual", action="store_true", help="manual mode (人が手で操作)")
     args = parser.parse_args()
-    run_judge(args.size, args.program)
+    run_judge(args.size, args.program, manual=args.manual)
 
 if __name__ == "__main__":
     main()
