@@ -1,0 +1,166 @@
+openapi: 3.0.3
+info:
+  title: ICFPC 2025 Aedificium API
+  version: 1.0.0
+  description: API for the ICFPC 2025.
+servers:
+  - url: https://31pwr5t6ij.execute-api.eu-west-2.amazonaws.com
+paths:
+  /select:
+    post:
+      summary: Select a problem to solve.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PostSelectRequest'
+      responses:
+        '200':
+          description: Problem selected successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostSelectResponse'
+  /explore:
+    post:
+      summary: Explore the environment with given plans.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PostExploreRequest'
+      responses:
+        '200':
+          description: Exploration results.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostExploreResponse'
+  /guess:
+    post:
+      summary: Submit a guess for the map layout.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PostGuessRequest'
+      responses:
+        '200':
+          description: Guess submitted successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  correct:
+                    type: boolean
+                  message:
+                    type: string
+components:
+  schemas:
+    PostSelectRequest:
+      type: object
+      properties:
+        id:
+          type: string
+        problemName:
+          type: string
+          enum:
+            - probatio
+            - primus
+            - secundus
+            - tertius
+            - quartus
+            - quintus
+      required:
+        - id
+        - problemName
+    PostSelectResponse:
+      type: object
+      properties:
+        problemName:
+          type: string
+          enum:
+            - probatio
+            - primus
+            - secundus
+            - tertius
+            - quartus
+            - quintus
+      required:
+        - problemName
+    PostExploreRequest:
+      type: object
+      properties:
+        id:
+          type: string
+        plans:
+          type: array
+          items:
+            type: string
+      required:
+        - id
+        - plans
+    PostExploreResponse:
+      type: object
+      properties:
+        results:
+          type: array
+          items:
+            type: array
+            items:
+              type: integer
+        queryCount:
+          type: integer
+      required:
+        - results
+        - queryCount
+    PostGuessRequest:
+      type: object
+      properties:
+        id:
+          type: string
+        map:
+          type: object
+          properties:
+            rooms:
+              type: array
+              items:
+                type: integer
+            startingRoom:
+              type: integer
+            connections:
+              type: array
+              items:
+                $ref: '#/components/schemas/Edge'
+          required:
+            - rooms
+            - startingRoom
+            - connections
+      required:
+        - id
+        - map
+
+    Node:
+      type: object
+      properties:
+        room:
+          type: integer
+        door:
+          type: integer
+      required:
+        - room
+        - door
+    Edge:
+      type: object
+      properties:
+        from:
+          $ref: '#/components/schemas/Node'
+        to:
+          $ref: '#/components/schemas/Node'
+      required:
+        - from
+        - to
